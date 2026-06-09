@@ -38,6 +38,16 @@ const blogSchema = new Schema(
       type: Boolean,
       default: false,
     },
+    likes: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    views: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
     author: {
       type: Schema.Types.ObjectId,
       ref: "Admin",
@@ -50,6 +60,10 @@ const blogSchema = new Schema(
   },
   { timestamps: true },
 );
+
+blogSchema.index({ category: 1, isPublished: 1, createdAt: -1 });
+blogSchema.index({ author: 1, createdAt: -1 });
+blogSchema.index({ isPublished: 1, isDeleted: 1, createdAt: -1 });
 
 blogSchema.pre("save", async function () {
   if (!this.slug) {

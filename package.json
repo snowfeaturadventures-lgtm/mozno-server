@@ -8,7 +8,9 @@
   "main": "server.js",
   "scripts": {
     "dev": "node --watch server.js",
-    "start": "nodemon server.js"
+    "start": "nodemon server.js",
+    "validate:newsletter": "node tests/newsletter.validation.examples.js",
+    "validate:startup-env": "node tests/startup-env.validation.examples.js"
   },
   "dependencies": {
     "@vercel/node": "^3.0.0",

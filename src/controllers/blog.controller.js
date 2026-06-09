@@ -1,7 +1,12 @@
 import imagekit from "../configs/imageKit.js";
 import Blog from "../models/blog.model.js";
 import mongoose from "mongoose";
-import Comment from '../models/comment.model.js'
+import Comment from "../models/comment.model.js";
+import {
+  blogAuthorSelect,
+  incrementBlogLikeCount,
+  incrementBlogViewCount,
+} from "../services/blog.service.js";
 
 export const addBlog = async (req, res) => {
   try {
@@ -105,7 +110,7 @@ export const getBlogBySlug = async (req, res) => {
       slug,
       isPublished: true,
       isDeleted: false,
-    });
+    }).populate("author", blogAuthorSelect);
     console.log(blog);
     if (!blog) {
       return res.status(404).json({
@@ -131,15 +136,23 @@ export const getBlogBySlug = async (req, res) => {
 export const getAllBlog = async (req, res) => {
   try {
     // Parse pagination parameters
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 10, 1), 50);
     const skip = (page - 1) * limit;
+    const category =
+      typeof req.query.category === "string" ? req.query.category.trim() : "";
+    const query = {
+      isPublished: true,
+      isDeleted: false,
+      ...(category && category !== "All" ? { category } : {}),
+    };
 
     // Fetch total count for pagination info
-    const totalBlogs = await Blog.countDocuments({ isPublished: true });
+    const totalBlogs = await Blog.countDocuments(query);
 
     // Fetch paginated blogs, sort by newest first
-    const blogs = await Blog.find({ isPublished: true })
+    const blogs = await Blog.find(query)
+      .populate("author", blogAuthorSelect)
       .sort({
         createdAt: -1,
       })
@@ -158,6 +171,7 @@ export const getAllBlog = async (req, res) => {
         totalPages,
         totalBlogs,
         limit,
+        category: category || "All",
         hasNextPage: page < totalPages,
         hasPrevPage: page > 1,
       },
@@ -168,6 +182,50 @@ export const getAllBlog = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Internal server error",
+    });
+  }
+};
+
+export const likeBlog = async (req, res) => {
+  try {
+    const counts = await incrementBlogLikeCount(req.params.blogId);
+
+    return res.status(200).json({
+      success: true,
+      message: "Blog like count updated successfully",
+      blogId: counts.blogId,
+      likes: counts.likes,
+      views: counts.views,
+      likeCount: counts.likes,
+      viewCount: counts.views,
+    });
+  } catch (error) {
+    console.error("Like Blog Error:", error);
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.statusCode ? error.message : "Internal server error",
+    });
+  }
+};
+
+export const viewBlog = async (req, res) => {
+  try {
+    const counts = await incrementBlogViewCount(req.params.blogId);
+
+    return res.status(200).json({
+      success: true,
+      message: "Blog view count updated successfully",
+      blogId: counts.blogId,
+      likes: counts.likes,
+      views: counts.views,
+      likeCount: counts.likes,
+      viewCount: counts.views,
+    });
+  } catch (error) {
+    console.error("View Blog Error:", error);
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.statusCode ? error.message : "Internal server error",
     });
   }
 };
@@ -265,8 +323,8 @@ export const handleDeleteBlogs = async (req, res) => {
 
     const blog = await Blog.findByIdAndDelete(blogId);
 
-    //delete all comments associated with blog
-    await Comment.deleteMany({ blog: blogId });
+    // Delete all comments associated with the blog.
+    await Comment.deleteMany({ blogId });
 
     return res.status(200).json({
       success: true,
@@ -505,10 +563,11 @@ export const getBlogBySlugAdmin = async (req, res) => {
 
 export const getAllComments = async (req, res) => {
   try {
-    const {id} = req.params();
-    console.log("all comments")
-    const comments = await Comment.find({id})
-      .populate("blog")
+    const { id } = req.params;
+    console.log("all comments");
+    const query = id ? { blogId: id } : {};
+    const comments = await Comment.find(query)
+      .populate("blogId", "title slug")
       .sort({ createdAt: -1 });
     res.json({ success: true, comments });
   } catch (error) {

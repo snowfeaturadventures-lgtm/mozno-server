@@ -1,10 +1,12 @@
 import express from "express";
-import { config } from "dotenv";
+import "dotenv/config";
 import db from "./src/configs/db.js";
+import { validateStartupEnv } from "./src/configs/env.js";
 import adminRouter from "./src/routes/admin.route.js";
 import cors from "cors";
 import DashRouter from "./src/routes/dashboard.route.js";
 import blogRouter from "./src/routes/blog.route.js";
+import newsletterRouter from "./src/routes/newsletter.routes.js";
 import careerRouter from "./src/routes/career.route.js";
 import contactRoute from "./src/routes/contact.routes.js";
 import router from "./src/routes/analyticsRoutes.js";
@@ -22,10 +24,7 @@ import cron from "node-cron";
 import mongoose from "mongoose";
 
 
-config();
-if (!process.env.SECRET_KEY) {
-  process.env.SECRET_KEY = "dev-secret-key";
-}
+validateStartupEnv();
 db();
 
 const app = express();
@@ -260,6 +259,7 @@ app.use("/api/admin/dashboard", DashRouter);
 
 // Public routes
 app.use("/api/blogs", blogRouter);
+app.use("/api/newsletter", newsletterRouter);
 app.use("/api/career", careerRouter);
 app.use("/api/contact", contactRoute);
 app.use("/api/analytics", router);
