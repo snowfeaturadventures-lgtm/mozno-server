@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import Blog from "../models/blog.model.js";
 
-const publicBlogQuery = { isPublished: true, isDeleted: false };
+const publicBlogQuery = { isPublished: true, isDeleted: { $ne: true } };
 const countProjection = "_id likes views";
 
 export const blogAuthorSelect = "firstName lastName email avatar role";

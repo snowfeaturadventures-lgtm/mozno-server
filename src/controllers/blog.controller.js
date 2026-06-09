@@ -109,7 +109,7 @@ export const getBlogBySlug = async (req, res) => {
     const blog = await Blog.findOne({
       slug,
       isPublished: true,
-      isDeleted: false,
+      isDeleted: { $ne: true },
     }).populate("author", blogAuthorSelect);
     console.log(blog);
     if (!blog) {
@@ -143,7 +143,7 @@ export const getAllBlog = async (req, res) => {
       typeof req.query.category === "string" ? req.query.category.trim() : "";
     const query = {
       isPublished: true,
-      isDeleted: false,
+      isDeleted: { $ne: true },
       ...(category && category !== "All" ? { category } : {}),
     };
 
